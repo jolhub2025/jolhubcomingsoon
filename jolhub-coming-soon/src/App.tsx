@@ -25,23 +25,32 @@ function App() {
     seconds: 0
   })
 
-  // Set launch date to 30 days from now
-  const launchDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime()
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const distance = launchDate - now
-
-      if (distance > 0) {
+    // Stable launch date: 30 days from now
+    const launchDate = new Date("2025-10-03T10:59:00Z").getTime()
+  
+    useEffect(() => {
+      const timer = setInterval(() => {
+        const now = Date.now()
+        const distance = launchDate - now
+  
+        if (distance <= 0) {
+          clearInterval(timer) /* stop interval*/
+          setTimeLeft({
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0,
+          })
+          return
+        }
+  
         setTimeLeft({
           days: Math.floor(distance / (1000 * 60 * 60 * 24)),
           hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
           minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000)
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
         })
-      }
-    }, 1000)
+      }, 1000)
 
     return () => clearInterval(timer)
   }, [launchDate])
@@ -73,10 +82,30 @@ function App() {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError('')
+
+    let formData: {
+      timestamp: string
+      firstName: string
+      lastName: string
+      email: string
+      phone: string
+      company: string
+      eventTypes: string
+      referralSource: string
+    } = {
+      timestamp: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      company: '',
+      eventTypes: '',
+      referralSource: '',
+    }
     
     try {
       // Prepare data for Google Sheets
-      const formData = {
+      formData = {
         timestamp: new Date().toISOString(),
         firstName: registrationData.firstName,
         lastName: registrationData.lastName,
@@ -89,7 +118,7 @@ function App() {
 
       console.log('=== Form Submission Debug ===');
       console.log('1. Form Data Prepared:', formData);
-      console.log('2. Target URL:', 'https://script.google.com/macros/s/AKfycbxm1qVBBlQIhEMP2gKutjXdRkXS134tiEOKBsGUaXMLPEFE8uA7tyXYBo1yRLYEPH04zw/exec');
+      console.log('2. Target URL:', 'https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec');
       
       // First try with regular CORS to see if we can get the response
       try {
@@ -168,8 +197,12 @@ function App() {
       console.error('❌ CRITICAL ERROR:', error);
       console.log('📝 Form data that failed to send:', formData);
       
-      // Show a properly formatted error message
-      setSubmitError(`Submission failed: ${error.message}. Please try again.`)
+      const message =
+      error instanceof Error
+        ? error.message
+        : 'Unknown error occurred'
+
+    setSubmitError(`Submission failed: ${message}. Please try again.`)
       
       // Still show the success modal with the data for user confirmation
       setSubmittedData(formData)
