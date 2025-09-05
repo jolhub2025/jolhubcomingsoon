@@ -19,7 +19,6 @@ function App() {
   const [submitError, setSubmitError] = useState('')
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [showDuplicateEmailModal, setShowDuplicateEmailModal] = useState(false)
-  const [duplicateEmailMessage, setDuplicateEmailMessage] = useState('')
   const [submittedData, setSubmittedData] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -134,7 +133,6 @@ function App() {
       } else {
         // Handle errors
         if (result.error === 'DUPLICATE_EMAIL') {
-          setDuplicateEmailMessage(result.message || 'You are already registered. Please wait for magic to happen.')
           setShowDuplicateEmailModal(true)
         } else {
           // Other database errors
@@ -196,7 +194,6 @@ function App() {
               className="already-registered-button"
               onClick={() => {
                 setShowDuplicateEmailModal(false)
-                setDuplicateEmailMessage('')
                 setShowRegistrationForm(false)
               }}
             >
