@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App_new.css'
+import { RegistrationService } from './services/registrationService'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -17,6 +18,8 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [showDuplicateEmailModal, setShowDuplicateEmailModal] = useState(false)
+  const [duplicateEmailMessage, setDuplicateEmailMessage] = useState('')
   const [submittedData, setSubmittedData] = useState<any>(null)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -83,130 +86,67 @@ function App() {
     setIsSubmitting(true)
     setSubmitError('')
 
-    let formData: {
-      timestamp: string
-      firstName: string
-      lastName: string
-      email: string
-      phone: string
-      company: string
-      eventTypes: string
-      referralSource: string
-    } = {
-      timestamp: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      company: '',
-      eventTypes: '',
-      referralSource: '',
-    }
-    
     try {
-      // Prepare data for Google Sheets
-      formData = {
-        timestamp: new Date().toISOString(),
-        firstName: registrationData.firstName,
-        lastName: registrationData.lastName,
-        email: registrationData.email,
-        phone: registrationData.phone || '',
-        company: registrationData.company || '',
-        eventTypes: registrationData.eventTypes.join(', '),
-        referralSource: registrationData.referralSource || 'Not specified'
+      // Prepare data for Supabase
+      const registrationPayload = {
+        first_name: registrationData.firstName.trim(),
+        last_name: registrationData.lastName.trim(),
+        email: registrationData.email.trim(),
+        phone: registrationData.phone?.trim() || '',
+        company: registrationData.company?.trim() || '',
+        event_types: registrationData.eventTypes.join(', '),
+        referral_source: registrationData.referralSource || 'Not specified'
       }
 
-      console.log('=== Form Submission Debug ===');
-      console.log('1. Form Data Prepared:', formData);
-      console.log('2. Target URL:', 'https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec');
+      // Call Supabase registration service
+      const result = await RegistrationService.createRegistration(registrationPayload)
       
-      // First try with regular CORS to see if we can get the response
-      try {
-        console.log('3. Attempting submission with CORS...');
-        const response = await fetch('https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData)
-        });
+      if (result.success) {
         
-        console.log('4. Response Status:', response.status);
-        console.log('5. Response OK:', response.ok);
-        
-        if (response.ok) {
-          const result = await response.text();
-          console.log('6. Response Text:', result);
-          
-          try {
-            const jsonResult = JSON.parse(result);
-            console.log('7. Parsed JSON Result:', jsonResult);
-            
-            if (jsonResult.success) {
-              console.log('✅ SUCCESS: Data saved to Google Sheets!');
-            } else {
-              console.log('❌ SCRIPT ERROR:', jsonResult.error);
-              throw new Error('Script error: ' + jsonResult.error);
-            }
-          } catch (parseError) {
-            console.log('8. JSON Parse Error, but request completed');
-            console.log('Response was:', result);
-          }
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Prepare display data
+        const displayData = {
+          firstName: registrationPayload.first_name,
+          lastName: registrationPayload.last_name,
+          email: registrationPayload.email,
+          phone: registrationPayload.phone,
+          company: registrationPayload.company,
+          eventTypes: registrationPayload.event_types,
+          referralSource: registrationPayload.referral_source
         }
-      } catch (corsError) {
-        console.log('9. CORS failed, trying no-cors mode...');
-        console.log('CORS Error:', corsError);
         
-        // Fallback to no-cors mode
-        await fetch('https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec', {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData)
-        });
+        // Show success modal
+        setSubmittedData(displayData)
+        setShowSuccessMessage(true)
+        setIsSubscribed(true)
+        setShowRegistrationForm(false)
         
-        console.log('10. No-CORS request sent');
+        // Reset form
+        setRegistrationData({
+          email: '',
+          firstName: '',
+          lastName: '',
+          company: '',
+          phone: '',
+          eventTypes: [],
+          referralSource: ''
+        })
+        
+      } else {
+        // Handle errors
+        if (result.error === 'DUPLICATE_EMAIL') {
+          setDuplicateEmailMessage(result.message || 'You are already registered. Please wait for magic to happen.')
+          setShowDuplicateEmailModal(true)
+        } else {
+          // Other database errors
+          setSubmitError(`Registration failed: ${result.message || 'Unknown error occurred'}. Please try again.`)
+        }
       }
-      
-      console.log('✅ Form submission completed!');
-      console.log('📊 Check your Google Sheet: https://docs.google.com/spreadsheets/d/1yzDei15AAxL6CuR_0YXtjh3-2o9VY4Q0JYbXJniuzIs/edit?gid=0#gid=0');
-      
-      // Store submitted data for display
-      setSubmittedData(formData)
-      setShowSuccessMessage(true)
-      
-      setIsSubscribed(true)
-      setShowRegistrationForm(false)
-      
-      // Reset form
-      setRegistrationData({
-        email: '',
-        firstName: '',
-        lastName: '',
-        company: '',
-        phone: '',
-        eventTypes: [],
-        referralSource: ''
-      })
       
     } catch (error) {
-      console.error('❌ CRITICAL ERROR:', error);
-      console.log('📝 Form data that failed to send:', formData);
       
-      const message =
-      error instanceof Error
-        ? error.message
-        : 'Unknown error occurred'
-
-    setSubmitError(`Submission failed: ${message}. Please try again.`)
+      const message = error instanceof Error ? error.message : 'Unknown error occurred'
+      setSubmitError(`Submission failed: ${message}. Please try again.`)
       
-      // Still show the success modal with the data for user confirmation
-      setSubmittedData(formData)
-      setShowSuccessMessage(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -232,7 +172,39 @@ function App() {
 
   return (
     <div className="app">
-      {showSuccessMessage ? (
+      {showDuplicateEmailModal ? (
+        /* Already Registered Modal */
+        <div className="success-modal-overlay">
+          <div className="success-modal">
+            <div className="already-registered-icon-large">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="#10b981" strokeWidth="2" fill="none"/>
+                <path d="M9 12l2 2 4-4" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <h2 className="already-registered-title">
+              You are already <span className="caveat-word">Registered</span>
+            </h2>
+            <p className="already-registered-message">
+              Please wait for magic to happen.
+            </p>
+            <p className="already-registered-subtitle">
+              We'll notify you as soon as JolHub launches. Get ready for something amazing!
+            </p>
+            
+            <button 
+              className="already-registered-button"
+              onClick={() => {
+                setShowDuplicateEmailModal(false)
+                setDuplicateEmailMessage('')
+                setShowRegistrationForm(false)
+              }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      ) : showSuccessMessage ? (
         /* Success Message Modal */
         <div className="success-modal-overlay">
           <div className="success-modal">
