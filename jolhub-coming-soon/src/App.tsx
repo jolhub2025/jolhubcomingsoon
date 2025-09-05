@@ -94,7 +94,7 @@ function App() {
       // First try with regular CORS to see if we can get the response
       try {
         console.log('3. Attempting submission with CORS...');
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxm1qVBBlQIhEMP2gKutjXdRkXS134tiEOKBsGUaXMLPEFE8uA7tyXYBo1yRLYEPH04zw/exec', {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ function App() {
         console.log('CORS Error:', corsError);
         
         // Fallback to no-cors mode
-        await fetch('https://script.google.com/macros/s/AKfycbxm1qVBBlQIhEMP2gKutjXdRkXS134tiEOKBsGUaXMLPEFE8uA7tyXYBo1yRLYEPH04zw/exec', {
+        await fetch('https://script.google.com/macros/s/AKfycbzfS6ENBN6wCgQGzdJj4arzAhv99yefDUgu96bdFBb3zQyBbWQTFndrcUkZOuFKvla5DA/exec', {
           method: 'POST',
           mode: 'no-cors',
           headers: {

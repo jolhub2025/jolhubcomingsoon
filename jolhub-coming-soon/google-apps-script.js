@@ -23,6 +23,11 @@ function doPost(e) {
     console.log('=== Incoming POST Request ===');
     console.log('Request object:', e);
     
+    // Check if request object exists (prevent manual execution errors)
+    if (!e) {
+      throw new Error('No request object received - this function should be called via HTTP POST');
+    }
+    
     // Check if postData exists
     if (!e.postData || !e.postData.contents) {
       throw new Error('No POST data received');
@@ -118,4 +123,42 @@ function doGet(e) {
       message: 'JolHub Registration Handler is running'
     }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Test function that you can run manually in the Google Apps Script editor
+function testManually() {
+  try {
+    console.log('=== Manual Test Started ===');
+    
+    // Simulate a POST request with test data
+    const mockEvent = {
+      postData: {
+        contents: JSON.stringify({
+          timestamp: new Date().toISOString(),
+          firstName: 'Manual',
+          lastName: 'Test',
+          email: 'manualtest@jolhub.com',
+          phone: '+1-555-MANUAL',
+          company: 'Manual Test Co',
+          eventTypes: 'Corporate Events',
+          referralSource: 'Manual Google Script Test'
+        })
+      }
+    };
+    
+    console.log('Test data prepared:', mockEvent.postData.contents);
+    
+    // Call doPost with mock data
+    const result = doPost(mockEvent);
+    
+    console.log('✅ Manual test completed successfully!');
+    console.log('Result:', result.getContent());
+    
+    return 'Manual test completed - check console logs and Google Sheet!';
+    
+  } catch (error) {
+    console.error('❌ Manual test failed:', error);
+    console.error('Error stack:', error.stack);
+    return 'Manual test failed: ' + error.toString();
+  }
 }
